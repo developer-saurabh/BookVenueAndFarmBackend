@@ -225,7 +225,16 @@ exports.FilterQueeryFarm = Joi.object({
       'date.base': 'Start date must be a valid ISO date.',
       'date.format': 'Start date must follow ISO format (YYYY-MM-DD).'
     }),
-
+city: Joi.alternatives()
+  .try(
+    Joi.string().trim().max(100),
+    Joi.array().items(Joi.string().trim().max(100))
+  )
+  .optional()
+  .messages({
+    "string.base": "City must be a string.",
+    "array.base": "City must be an array of strings.",
+  }),
   endDate: Joi.date()
     .iso()
     .min(Joi.ref('startDate'))

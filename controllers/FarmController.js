@@ -1229,7 +1229,12 @@ const cleanInput = (input) => {
       delete clone.priceRange;
     }
   }
-
+if (Array.isArray(clone.city)) {
+  clone.city = clone.city.filter((c) => typeof c === "string" && c.trim() !== "");
+  if (!clone.city.length) delete clone.city;
+} else if (clone.city === "" || clone.city == null) {
+  delete clone.city;
+}
   return clone;
 };
 
@@ -1504,6 +1509,7 @@ exports.FilterQueeryFarms = async (req, res) => {
       types = [],
       page = 1,
       limit = 10,
+       city,
     } = value;
 
     const now = new Date();
@@ -1538,7 +1544,14 @@ exports.FilterQueeryFarms = async (req, res) => {
     if (farmCategory.length > 0) {
       baseQuery.farmCategory = { $in: farmCategory };
     }
-
+    // 🔹 Enhanced city filter (supports array or single string)
+    if (Array.isArray(city) && city.length > 0) {
+      baseQuery["location.city"] = {
+        $in: city.map((c) => new RegExp(`^${c.trim()}`, "i")),
+      };
+    } else if (typeof city === "string" && city.trim() !== "") {
+      baseQuery["location.city"] = { $regex: new RegExp(`^${city.trim()}`, "i") };
+    }
     let farms = await Farm.find(baseQuery)
       .populate("farmCategory", "_id name")
       .populate("facilities", "_id name")
@@ -1754,6 +1767,42 @@ exports.getUsedFacilities = async (req, res) => {
   }
 };
 
+exports.getUsedCities = async (req, res) => {
+  try {
+    // 1️⃣ Get distinct city names from nested location.city
+    const cities = await Farm.distinct("location.city", {
+      isActive: true,
+      isApproved: true,
+      "location.city": { $exists: true, $ne: "" },
+    });
+
+    if (!cities.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No cities are currently associated with any farm.",
+      });
+    }
+
+    // 2️⃣ Format and sort (case-insensitive)
+    const sortedCities = cities
+      .filter(Boolean)
+      .map((c) => c.trim())
+      .filter((c) => c !== "")
+      .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Cities fetched successfully.",
+      data: sortedCities,
+    });
+  } catch (err) {
+    console.error("City fetch error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error. Please try again later.",
+    });
+  }
+};
 exports.getFarmTypes = async (req, res) => {
   try {
     // Optional: validate query if you’ve got a schema for it

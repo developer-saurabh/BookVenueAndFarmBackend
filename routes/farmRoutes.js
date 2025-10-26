@@ -20,10 +20,13 @@ router.get('/get_all_facilities', ParseNest,FarmController.getUsedFacilities);
 
 router.get('/get_all_types', ParseNest,FarmController.getFarmTypes);
 
+router.get('/get_all_cities', ParseNest,FarmController.getUsedCities);
+
 // router.get('/get_all_farms', ParseNest,getAllFarms);
 
 router.post('/get_farm_id', ParseNest,FarmController.getFarmById);
 
+// need update add city 
 router.post('/filter-farms', ParseNest,FarmController.FilterQueeryFarms);
 
 // gallary Parts apis 
